@@ -16,6 +16,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using Serilog.Core;
 using Serilog.Debugging;
 using Serilog.Events;
@@ -52,12 +53,17 @@ namespace Serilog.Sinks.File
                               RollingInterval rollingInterval,
                               bool rollOnFileSizeLimit,
                               FileLifecycleHooks? hooks,
-                              TimeSpan? retainedFileTimeLimit)
+                              TimeSpan? retainedFileTimeLimit,
+                              bool replaceEnvVariables = false)
         {
             if (path == null) throw new ArgumentNullException(nameof(path));
             if (fileSizeLimitBytes.HasValue && fileSizeLimitBytes < 1) throw new ArgumentException("Invalid value provided; file size limit must be at least 1 byte, or null.");
             if (retainedFileCountLimit.HasValue && retainedFileCountLimit < 1) throw new ArgumentException("Zero or negative value provided; retained file count limit must be at least 1");
             if (retainedFileTimeLimit.HasValue && retainedFileTimeLimit < TimeSpan.Zero) throw new ArgumentException("Negative value provided; retained file time limit must be non-negative.", nameof(retainedFileTimeLimit));
+
+            if(replaceEnvVariables)
+                path = Regex.Replace(path, "{%(?<name>[a-z_0-9]+?)%}",
+                    m => Environment.GetEnvironmentVariable(m.Groups.TryGetValue("name", out var group) ? group.Value : string.Empty) ?? string.Empty, RegexOptions.IgnoreCase);
 
             _roller = new PathRoller(path, rollingInterval);
             _textFormatter = textFormatter;

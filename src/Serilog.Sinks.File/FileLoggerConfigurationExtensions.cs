@@ -166,7 +166,7 @@ namespace Serilog
         /// <param name="sinkConfiguration">Logger sink configuration.</param>
         /// <param name="formatter">A formatter, such as <see cref="JsonFormatter"/>, to convert the log events into
         /// text for the file. If control of regular text formatting is required, use the other
-        /// overload of <see cref="File(LoggerSinkConfiguration, string, LogEventLevel, string, IFormatProvider, long?, LoggingLevelSwitch, bool, bool, TimeSpan?, RollingInterval, bool, int?, Encoding, FileLifecycleHooks, TimeSpan?)"/>
+        /// overload of <see cref="File(LoggerSinkConfiguration, string, LogEventLevel, string, IFormatProvider, long?, LoggingLevelSwitch, bool, bool, TimeSpan?, RollingInterval, bool, int?, Encoding, FileLifecycleHooks, TimeSpan?, bool)"/>
         /// and specify the outputTemplate parameter instead.
         /// </param>
         /// <param name="path">Path to the file.</param>
@@ -235,6 +235,7 @@ namespace Serilog
         /// <param name="encoding">Character encoding used to write the text file. The default is UTF-8 without BOM.</param>
         /// <param name="hooks">Optionally enables hooking into log file lifecycle events.</param>
         /// <param name="retainedFileTimeLimit">The maximum time after the end of an interval that a rolling log file will be retained.
+        /// <param name="replaceEnvVariables">If enabled, will replace any patterns in the path matching {%ENV_VAR%} with environment variable value instead</param>
         /// Must be greater than or equal to <see cref="TimeSpan.Zero"/>.
         /// Ignored if <paramref see="rollingInterval"/> is <see cref="RollingInterval.Infinite"/>.
         /// The default is to retain files indefinitely.</param>
@@ -264,7 +265,8 @@ namespace Serilog
             int? retainedFileCountLimit = DefaultRetainedFileCountLimit,
             Encoding? encoding = null,
             FileLifecycleHooks? hooks = null,
-            TimeSpan? retainedFileTimeLimit = null)
+            TimeSpan? retainedFileTimeLimit = null,
+            bool replaceEnvVariables = false)
         {
             if (sinkConfiguration == null) throw new ArgumentNullException(nameof(sinkConfiguration));
             if (path == null) throw new ArgumentNullException(nameof(path));
@@ -273,7 +275,7 @@ namespace Serilog
             var formatter = new MessageTemplateTextFormatter(outputTemplate, formatProvider);
             return File(sinkConfiguration, formatter, path, restrictedToMinimumLevel, fileSizeLimitBytes,
                 levelSwitch, buffered, shared, flushToDiskInterval,
-                rollingInterval, rollOnFileSizeLimit, retainedFileCountLimit, encoding, hooks, retainedFileTimeLimit);
+                rollingInterval, rollOnFileSizeLimit, retainedFileCountLimit, encoding, hooks, retainedFileTimeLimit, replaceEnvVariables);
         }
 
         /// <summary>
@@ -282,7 +284,7 @@ namespace Serilog
         /// <param name="sinkConfiguration">Logger sink configuration.</param>
         /// <param name="formatter">A formatter, such as <see cref="JsonFormatter"/>, to convert the log events into
         /// text for the file. If control of regular text formatting is required, use the other
-        /// overload of <see cref="File(LoggerSinkConfiguration, string, LogEventLevel, string, IFormatProvider, long?, LoggingLevelSwitch, bool, bool, TimeSpan?, RollingInterval, bool, int?, Encoding, FileLifecycleHooks, TimeSpan?)"/>
+        /// overload of <see cref="File(LoggerSinkConfiguration, string, LogEventLevel, string, IFormatProvider, long?, LoggingLevelSwitch, bool, bool, TimeSpan?, RollingInterval, bool, int?, Encoding, FileLifecycleHooks, TimeSpan?, bool)"/>
         /// and specify the outputTemplate parameter instead.
         /// </param>
         /// <param name="path">Path to the file.</param>
@@ -305,6 +307,7 @@ namespace Serilog
         /// <param name="encoding">Character encoding used to write the text file. The default is UTF-8 without BOM.</param>
         /// <param name="hooks">Optionally enables hooking into log file lifecycle events.</param>
         /// <param name="retainedFileTimeLimit">The maximum time after the end of an interval that a rolling log file will be retained.
+        /// <param name="replaceEnvVariables">If enabled, will replace any patterns in the path matching {%ENV_VAR%} with environment variable value instead</param>
         /// Must be greater than or equal to <see cref="TimeSpan.Zero"/>.
         /// Ignored if <paramref see="rollingInterval"/> is <see cref="RollingInterval.Infinite"/>.
         /// The default is to retain files indefinitely.</param>
@@ -333,7 +336,8 @@ namespace Serilog
             int? retainedFileCountLimit = DefaultRetainedFileCountLimit,
             Encoding? encoding = null,
             FileLifecycleHooks? hooks = null,
-            TimeSpan? retainedFileTimeLimit = null)
+            TimeSpan? retainedFileTimeLimit = null,
+            bool replaceEnvVariables = false)
         {
             if (sinkConfiguration == null) throw new ArgumentNullException(nameof(sinkConfiguration));
             if (formatter == null) throw new ArgumentNullException(nameof(formatter));
@@ -341,7 +345,7 @@ namespace Serilog
 
             return ConfigureFile(sinkConfiguration.Sink, formatter, path, restrictedToMinimumLevel, fileSizeLimitBytes, levelSwitch,
                 buffered, false, shared, flushToDiskInterval, encoding, rollingInterval, rollOnFileSizeLimit,
-                retainedFileCountLimit, hooks, retainedFileTimeLimit);
+                retainedFileCountLimit, hooks, retainedFileTimeLimit, replaceEnvVariables);
         }
 
         /// <summary>
@@ -428,6 +432,7 @@ namespace Serilog
         /// the default is "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}".</param>
         /// <param name="encoding">Character encoding used to write the text file. The default is UTF-8 without BOM.</param>
         /// <param name="hooks">Optionally enables hooking into log file lifecycle events.</param>
+        /// <param name="replaceEnvVariables">If enabled, will replace any patterns in the path matching {%ENV_VAR%} with environment variable value instead</param>
         /// <returns>Configuration object allowing method chaining.</returns>
         /// <exception cref="ArgumentNullException">When <paramref name="sinkConfiguration"/> is <code>null</code></exception>
         /// <exception cref="ArgumentNullException">When <paramref name="path"/> is <code>null</code></exception>
@@ -446,14 +451,15 @@ namespace Serilog
             IFormatProvider? formatProvider = null,
             LoggingLevelSwitch? levelSwitch = null,
             Encoding? encoding = null,
-            FileLifecycleHooks? hooks = null)
+            FileLifecycleHooks? hooks = null,
+            bool replaceEnvVariables = false)
         {
             if (sinkConfiguration == null) throw new ArgumentNullException(nameof(sinkConfiguration));
             if (path == null) throw new ArgumentNullException(nameof(path));
             if (outputTemplate == null) throw new ArgumentNullException(nameof(outputTemplate));
 
             var formatter = new MessageTemplateTextFormatter(outputTemplate, formatProvider);
-            return File(sinkConfiguration, formatter, path, restrictedToMinimumLevel, levelSwitch, encoding, hooks);
+            return File(sinkConfiguration, formatter, path, restrictedToMinimumLevel, levelSwitch, encoding, hooks, replaceEnvVariables);
         }
 
         /// <summary>
@@ -462,7 +468,7 @@ namespace Serilog
         /// <param name="sinkConfiguration">Logger sink configuration.</param>
         /// <param name="formatter">A formatter, such as <see cref="JsonFormatter"/>, to convert the log events into
         /// text for the file. If control of regular text formatting is required, use the other
-        /// overload of <see cref="File(LoggerAuditSinkConfiguration, string, LogEventLevel, string, IFormatProvider, LoggingLevelSwitch, Encoding, FileLifecycleHooks)"/>
+        /// overload of <see cref="File(LoggerAuditSinkConfiguration, string, LogEventLevel, string, IFormatProvider, LoggingLevelSwitch, Encoding, FileLifecycleHooks, bool)"/>
         /// and specify the outputTemplate parameter instead.
         /// </param>
         /// <param name="path">Path to the file.</param>
@@ -472,6 +478,7 @@ namespace Serilog
         /// to be changed at runtime.</param>
         /// <param name="encoding">Character encoding used to write the text file. The default is UTF-8 without BOM.</param>
         /// <param name="hooks">Optionally enables hooking into log file lifecycle events.</param>
+        /// <param name="replaceEnvVariables">If enabled, will replace any patterns in the path matching {%ENV_VAR%} with environment variable value instead</param>
         /// <returns>Configuration object allowing method chaining.</returns>
         /// <exception cref="ArgumentNullException">When <paramref name="sinkConfiguration"/> is <code>null</code></exception>
         /// <exception cref="ArgumentNullException">When <paramref name="formatter"/> is <code>null</code></exception>
@@ -489,14 +496,15 @@ namespace Serilog
             LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
             LoggingLevelSwitch? levelSwitch = null,
             Encoding? encoding = null,
-            FileLifecycleHooks? hooks = null)
+            FileLifecycleHooks? hooks = null,
+            bool replaceEnvVariables = false)
         {
             if (sinkConfiguration == null) throw new ArgumentNullException(nameof(sinkConfiguration));
             if (formatter == null) throw new ArgumentNullException(nameof(formatter));
             if (path == null) throw new ArgumentNullException(nameof(path));
 
             return ConfigureFile(sinkConfiguration.Sink, formatter, path, restrictedToMinimumLevel, null, levelSwitch, false, true,
-                false, null, encoding, RollingInterval.Infinite, false, null, hooks, null);
+                false, null, encoding, RollingInterval.Infinite, false, null, hooks, null, replaceEnvVariables);
         }
 
         static LoggerConfiguration ConfigureFile(
@@ -515,7 +523,8 @@ namespace Serilog
             bool rollOnFileSizeLimit,
             int? retainedFileCountLimit,
             FileLifecycleHooks? hooks,
-            TimeSpan? retainedFileTimeLimit)
+            TimeSpan? retainedFileTimeLimit,
+            bool replaceEnvVariables)
         {
             if (addSink == null) throw new ArgumentNullException(nameof(addSink));
             if (formatter == null) throw new ArgumentNullException(nameof(formatter));
@@ -532,7 +541,7 @@ namespace Serilog
             {
                 if (rollOnFileSizeLimit || rollingInterval != RollingInterval.Infinite)
                 {
-                    sink = new RollingFileSink(path, formatter, fileSizeLimitBytes, retainedFileCountLimit, encoding, buffered, shared, rollingInterval, rollOnFileSizeLimit, hooks, retainedFileTimeLimit);
+                    sink = new RollingFileSink(path, formatter, fileSizeLimitBytes, retainedFileCountLimit, encoding, buffered, shared, rollingInterval, rollOnFileSizeLimit, hooks, retainedFileTimeLimit, replaceEnvVariables);
                 }
                 else
                 {
@@ -544,7 +553,7 @@ namespace Serilog
                     }
                     else
                     {
-                        sink = new FileSink(path, formatter, fileSizeLimitBytes, encoding, buffered, hooks);
+                        sink = new FileSink(path, formatter, fileSizeLimitBytes, encoding, buffered, hooks, replaceEnvVariables);
                     }
 
                 }

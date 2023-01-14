@@ -15,6 +15,7 @@
 using System;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using Serilog.Events;
 using Serilog.Formatting;
 
@@ -66,13 +67,18 @@ namespace Serilog.Sinks.File
             long? fileSizeLimitBytes,
             Encoding? encoding,
             bool buffered,
-            FileLifecycleHooks? hooks)
+            FileLifecycleHooks? hooks,
+            bool replaceEnvVariables = false)
         {
             if (path == null) throw new ArgumentNullException(nameof(path));
             if (fileSizeLimitBytes.HasValue && fileSizeLimitBytes < 1) throw new ArgumentException("Invalid value provided; file size limit must be at least 1 byte, or null.");
             _textFormatter = textFormatter ?? throw new ArgumentNullException(nameof(textFormatter));
             _fileSizeLimitBytes = fileSizeLimitBytes;
             _buffered = buffered;
+
+            if (replaceEnvVariables)
+                path = Regex.Replace(path, "{%(?<name>[a-z_0-9]+?)%}",
+                    m => Environment.GetEnvironmentVariable(m.Groups.TryGetValue("name", out var group) ? group.Value : string.Empty) ?? string.Empty, RegexOptions.IgnoreCase);
 
             var directory = Path.GetDirectoryName(path);
             if (!string.IsNullOrWhiteSpace(directory) && !Directory.Exists(directory))
